@@ -23,7 +23,7 @@ TOOLS_REGISTRY = {
         "tools": {
             "open_app": "The primary tool to open any application. It finds the app by name and launches it.",
             "open_application_gui": "Simulates pressing the Windows key, typing the app name, and pressing Enter to open an app.",
-            "open_application_cmd": "Fast-tracks opening system apps directly via command line (only for apps already in system PATH)."
+            "open_application_cmd": "Fast-tracks opening applications directly by name via command line, system registry, or AppID (e.g., Word, Excel, Chrome, Notepad)."
         }
     },
     "interaction": {
@@ -43,6 +43,8 @@ TOOLS_REGISTRY = {
     "file_explorer": {
         "description": "Tools to manage the local file system. Use this to search, move, copy, rename, and list files and directories.",
         "tools": {
+            "open_folder": "Opens a folder in Windows File Explorer.",
+            "organize_files": "Organizes files in a folder into categorized subfolders by reading their names and grouping them.",
             "search_files": "Searches for files or folders by name recursively within a directory.",
             "move_file": "Moves a file or directory from source to destination (acts as cut and move).",
             "copy_file": "Copies a file or directory from source to destination.",
@@ -94,7 +96,7 @@ def get_slm_tool_schemas() -> list:
         # APPLICATION TOOLS
         {"type": "function", "function": {"name": "open_app", "description": "The primary tool to open any application.", "parameters": {"type": "object", "properties": {"app_name": {"type": "string"}}, "required": ["app_name"]}}},
         {"type": "function", "function": {"name": "open_application_gui", "description": "Simulates pressing Windows key and typing to open an app.", "parameters": {"type": "object", "properties": {"app_name": {"type": "string"}}, "required": ["app_name"]}}},
-        {"type": "function", "function": {"name": "open_application_cmd", "description": "Fast-tracks opening system apps directly via command line.", "parameters": {"type": "object", "properties": {"app_name": {"type": "string"}}, "required": ["app_name"]}}},
+        {"type": "function", "function": {"name": "open_application_cmd", "description": "Fast-tracks opening applications directly by name via command line, system registry, or AppID.", "parameters": {"type": "object", "properties": {"app_name": {"type": "string"}}, "required": ["app_name"]}}},
         
         # INTERACTION TOOLS
         {"type": "function", "function": {"name": "type_text", "description": "Types out a given string of text character by character.", "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
@@ -111,6 +113,8 @@ def get_slm_tool_schemas() -> list:
         {"type": "function", "function": {"name": "goal_complete", "description": "Call this when all steps to satisfy the original goal have been completed.", "parameters": {"type": "object", "properties": {}}}},
         
         # FILE EXPLORER TOOLS
+        {"type": "function", "function": {"name": "open_folder", "description": "Opens a folder in Windows File Explorer.", "parameters": {"type": "object", "properties": {"directory": {"type": "string"}}, "required": ["directory"]}}},
+        {"type": "function", "function": {"name": "organize_files", "description": "Organizes files in a directory into categorized subfolders by reading their names and grouping them.", "parameters": {"type": "object", "properties": {"directory": {"type": "string"}}, "required": ["directory"]}}},
         {"type": "function", "function": {"name": "search_files", "description": "Searches for files or folders by name recursively within a directory.", "parameters": {"type": "object", "properties": {"directory": {"type": "string"}, "name": {"type": "string"}}, "required": ["directory", "name"]}}},
         {"type": "function", "function": {"name": "move_file", "description": "Moves a file or directory from source to destination.", "parameters": {"type": "object", "properties": {"source": {"type": "string"}, "destination": {"type": "string"}}, "required": ["source", "destination"]}}},
         {"type": "function", "function": {"name": "copy_file", "description": "Copies a file or directory from source to destination.", "parameters": {"type": "object", "properties": {"source": {"type": "string"}, "destination": {"type": "string"}}, "required": ["source", "destination"]}}},

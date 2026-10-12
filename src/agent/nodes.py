@@ -260,6 +260,35 @@ def interaction_tool_node(state: AgentState) -> AgentState:
     return {"selected_tool": tool_name, "tool_arguments": args}
 
 
+def file_explorer_tool_node(state: AgentState) -> AgentState:
+    """Node 3D: Deterministic and Laya routing for file explorer tools."""
+    raw = state["request"]
+    target = state.get("parsed_target", raw)
+    lower = raw.lower().strip()
+    print("[Node] Routing file explorer tool…")
+
+    import os
+    path_match = re.search(r'([a-zA-Z]:\\[^\s"\']+|"[^"]+"|\'[^\']+\')', raw)
+    extracted_path = path_match.group(1).strip('"\'') if path_match else target
+
+    if "organi" in lower or "group" in lower:
+        return {"selected_tool": "organize_files", "tool_arguments": {"directory": extracted_path}}
+    elif "open" in lower and ("folder" in lower or "dir" in lower):
+        return {"selected_tool": "open_folder", "tool_arguments": {"directory": extracted_path}}
+    elif "search" in lower or "find" in lower:
+        return {"selected_tool": "search_files", "tool_arguments": {"directory": extracted_path, "name": target}}
+    elif "list" in lower:
+        return {"selected_tool": "list_directory", "tool_arguments": {"directory": extracted_path}}
+    elif "create" in lower and "folder" in lower:
+        return {"selected_tool": "create_folder", "tool_arguments": {"directory": extracted_path, "folder_name": "New Folder"}}
+
+    if os.path.exists(extracted_path) and os.path.isdir(extracted_path):
+        return {"selected_tool": "organize_files", "tool_arguments": {"directory": extracted_path}}
+
+    tool_name = select_tool_with_laya(raw, "file_explorer")
+    return {"selected_tool": tool_name, "tool_arguments": {"directory": extracted_path}}
+
+
 def execute_tool_node(state: AgentState) -> AgentState:
     """Node 4: Execute the chosen tool with the resolved arguments."""
     from src.tools.browser import open_url, search_browser
@@ -268,6 +297,11 @@ def execute_tool_node(state: AgentState) -> AgentState:
     from src.tools.interaction import (
         type_text, press_key, press_hotkey, move_mouse,
         click, double_click, right_click, get_mouse_position, take_screenshot
+    )
+    from src.tools.file_explorer import (
+        open_folder, organize_files, search_files, move_file, copy_file,
+        rename_file, list_directory, get_all_file_names, create_folder,
+        get_file_metadata, delete_item
     )
 
     def _press_hotkey_wrapper(**kwargs):
@@ -288,7 +322,13 @@ def execute_tool_node(state: AgentState) -> AgentState:
         "type_text": type_text, "press_key": press_key, "press_hotkey": _press_hotkey_wrapper,
         "move_mouse": move_mouse, "click": click, "double_click": double_click,
         "right_click": right_click, "get_mouse_position": get_mouse_position,
-        "take_screenshot": take_screenshot
+        "take_screenshot": take_screenshot,
+        "open_folder": open_folder, "organize_files": organize_files,
+        "search_files": search_files, "move_file": move_file,
+        "copy_file": copy_file, "rename_file": rename_file,
+        "list_directory": list_directory, "get_all_file_names": get_all_file_names,
+        "create_folder": create_folder, "get_file_metadata": get_file_metadata,
+        "delete_item": delete_item
     }
 
     tool_name = state.get("selected_tool")
@@ -307,9 +347,12 @@ def execute_tool_node(state: AgentState) -> AgentState:
             if tool_name in ["open_url", "search_browser"]:
                 print(f"[Execute] Waiting for browser to load (4s)...")
                 time.sleep(4.0)
-            elif tool_name in ["open_app", "open_application_gui", "open_application_cmd"]:
+            elif tool_name in ["open_app", "open_application_gui", "open_application_cmd", "open_folder"]:
                 print(f"[Execute] Waiting for application to open (5s)...")
                 time.sleep(5.0)
+            elif tool_name in ["organize_files", "move_file", "copy_file", "create_folder"]:
+                print(f"[Execute] Short wait after file operation (1s)...")
+                time.sleep(1.0)
             elif tool_name in ["type_text", "press_key", "press_hotkey"]:
                 print(f"[Execute] Short wait after keyboard action (0.5s)...")
                 time.sleep(0.5)

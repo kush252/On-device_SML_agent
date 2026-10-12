@@ -12,6 +12,17 @@ class ParsedRequest(TypedDict):
     target: str        # Extracted target entity (app name, URL, search query)
     likely_category: str  # Hint: 'browser', 'application', 'interaction', or 'unknown'
 
+# File Explorer patterns
+FILE_EXPLORER_PATTERNS = [
+    r"^(please\s+)?(can you\s+)?organi[sz]e\s+(the\s+)?files?\s+(in\s+)?",
+    r"^(please\s+)?(can you\s+)?group\s+(the\s+)?files?\s+(in\s+)?",
+    r"^(please\s+)?(can you\s+)?open\s+(the\s+)?folder\s+(at\s+)?",
+    r"^(please\s+)?(can you\s+)?list\s+(the\s+)?files?\s+(in\s+)?",
+    r"^(please\s+)?(can you\s+)?create\s+(a\s+)?folder\s+",
+    r"^(please\s+)?(can you\s+)?move\s+(the\s+)?file\s+",
+    r"^(please\s+)?(can you\s+)?search\s+(for\s+)?files?\s+(in\s+)?",
+]
+
 # Action verb prefixes to strip from requests
 OPEN_PATTERNS = [
     r"^(please\s+)?(can you\s+)?open\s+",
@@ -67,6 +78,17 @@ def parse_request(raw: str) -> ParsedRequest:
     """
     text = raw.strip()
     lower = text.lower()
+    
+    # --- Try to detect FILE EXPLORER ---
+    stripped_file = _strip_verbs(text, FILE_EXPLORER_PATTERNS)
+    if stripped_file or re.search(r"[a-zA-Z]:\\", text) and ("folder" in lower or "organi" in lower or "file" in lower):
+        target = stripped_file if stripped_file else text
+        return ParsedRequest(
+            raw=raw,
+            cleaned=f"file management {target}",
+            target=target,
+            likely_category="file_explorer"
+        )
     
     # --- Try to detect OPEN / APPLICATION ---
     stripped = _strip_verbs(text, OPEN_PATTERNS)

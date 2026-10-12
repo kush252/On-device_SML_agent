@@ -41,6 +41,12 @@ CATEGORY_CRITERIA = {
         "Examples: 'press enter', 'press alt tab', 'click here', 'move the mouse', 'type hello', "
         "'press ctrl+c', 'scroll down', 'switch the app', 'hold shift'. "
         "NOT for opening apps or searching the internet."
+    ),
+    "file_explorer": (
+        "Requests to manage, organize, open, move, copy, search, or list local files and directories on disk. "
+        "Examples: 'organize files in folder', 'group research papers', 'open folder at X', 'list files in directory', "
+        "'move file A to B', 'create folder Y', 'search for file Z'. "
+        "NOT for web searches or keyboard/mouse clicks."
     )
 }
 
@@ -67,8 +73,8 @@ TOOL_CRITERIA = {
             "Use only if open_app is unavailable."
         ),
         "open_application_cmd": (
-            "Opens an application through the command line. Only use for apps with known CLI commands "
-            "like 'code' for VS Code or 'notepad'. NOT for mobile/store apps like WhatsApp."
+            "Opens an application directly by its name through command line, system registry, or AppID. "
+            "Resolves names like 'word', 'excel', 'chrome', 'notepad', 'code', etc."
         )
     },
     "interaction": {
@@ -104,6 +110,32 @@ TOOL_CRITERIA = {
         "get_mouse_position": (
             "Returns the current coordinates of the mouse cursor. "
             "Examples: 'where is the mouse', 'get cursor position'."
+        )
+    },
+    "file_explorer": {
+        "organize_files": (
+            "Organizes, sorts, or groups files in a directory into topic/category subfolders by analyzing filenames. "
+            "Examples: 'organize files in folder', 'group research papers in temp', 'categorize files'."
+        ),
+        "open_folder": (
+            "Opens a folder directly in Windows File Explorer. "
+            "Examples: 'open folder at D:\\temp', 'open directory', 'explore folder'."
+        ),
+        "list_directory": (
+            "Lists all files and subfolders in a directory. "
+            "Examples: 'list files in folder', 'what files are in directory'."
+        ),
+        "create_folder": (
+            "Creates a new directory/folder. "
+            "Examples: 'create folder research', 'make new directory'."
+        ),
+        "move_file": (
+            "Moves or relocates a file from source to destination. "
+            "Examples: 'move paper.pdf to archive', 'cut and paste file'."
+        ),
+        "search_files": (
+            "Searches for files matching a name pattern. "
+            "Examples: 'search for report.pdf', 'find files named notes'."
         )
     }
 }

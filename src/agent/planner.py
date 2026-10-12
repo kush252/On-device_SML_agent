@@ -18,7 +18,60 @@ GOAL_COMPLETE_SIGNAL = "GOAL_COMPLETE"
 HAMMER_TOOLS = get_slm_tool_schemas()
 
 
-from src.agent.memory.storage import get_recent_steps
+SPECIAL_STEP_PHRASES = {
+    "goal_complete": lambda args: GOAL_COMPLETE_SIGNAL,
+    "search_browser": lambda args: f"search for {args.get('query', '')}",
+    "open_url": lambda args: f"open url {args.get('url', '')}",
+    "type_text": lambda args: f"type {args.get('text', '')}",
+    "press_key": lambda args: f"press {args.get('key', '')}",
+    "press_hotkey": lambda args: f"press hotkey {args.get('hotkey', '')}",
+    "move_mouse": lambda args: f"move mouse to {args.get('x', 0)}, {args.get('y', 0)}",
+    "get_unread_emails": lambda args: f"get {args.get('max_results', 5)} unread emails",
+    "send_email": lambda args: f"send email to {args.get('to', '')}",
+    "create_event": lambda args: f"create event '{args.get('summary', '')}'",
+    "search_files": lambda args: f"search for file {args.get('name', '')} in {args.get('directory', '')}",
+    "move_file": lambda args: f"move file {args.get('source', '')} to {args.get('destination', '')}",
+    "copy_file": lambda args: f"copy file {args.get('source', '')} to {args.get('destination', '')}",
+    "rename_file": lambda args: f"rename file {args.get('old_path', '')} to {args.get('new_path', '')}",
+    "create_folder": lambda args: f"create folder {args.get('folder_name', '')} in {args.get('directory', '')}",
+    "delete_item": lambda args: f"delete item {args.get('path', '')}",
+}
+
+
+def _map_to_step(f_name: str, f_args: dict = None) -> str:
+    """
+    Option 1: Generic Auto-Formatter + Smart Overrides.
+    Maps Hammer function calls to natural language steps without brittle if/elif chains.
+    """
+    if not f_name:
+        return GOAL_COMPLETE_SIGNAL
+
+    f_args = f_args or {}
+    if f_name in SPECIAL_STEP_PHRASES:
+        return SPECIAL_STEP_PHRASES[f_name](f_args)
+
+    # Normalize action name (e.g. 'open_application_cmd' -> 'open', 'open_folder' -> 'open folder')
+    action = f_name
+    for prefix in ("open_application_cmd", "open_application_gui", "open_app"):
+        if action == prefix:
+            action = "open"
+            break
+    action = action.replace("_", " ")
+
+    if not f_args:
+        return action
+
+    # Single argument: format naturally (e.g. "open Word", "organize files in D:\temp")
+    if len(f_args) == 1:
+        val = next(iter(f_args.values()))
+        if "organize" in action:
+            return f"{action} in {val}".strip()
+        return f"{action} {val}".strip()
+
+    # Multi-argument clean fallback: "action (k1='v1', k2='v2')"
+    args_str = ", ".join(f"{k}='{v}'" for k, v in f_args.items())
+    return f"{action} ({args_str})".strip()
+
 
 def generate_full_plan(goal: str, run_folder: str = "") -> list:
     """
@@ -30,7 +83,6 @@ def generate_full_plan(goal: str, run_folder: str = "") -> list:
     ]
     
     if run_folder:
-        from src.agent.memory.storage import get_recent_steps
         recent_steps = get_recent_steps(run_folder, n=10)
         if recent_steps:
             history_lines = []
@@ -51,7 +103,6 @@ def generate_full_plan(goal: str, run_folder: str = "") -> list:
 
 def _call_ollama(messages):
     """Helper to actually call Ollama and parse."""
-    generated_actions = []
     try:
         response = ollama.chat(
             model=OLLAMA_MODEL,
@@ -65,46 +116,6 @@ def _call_ollama(messages):
 
     msg = response.get("message", {})
     generated_actions = []
-
-    # Map a single Hammer function call to a natural language step
-    def _map_to_step(f_name, f_args):
-        if f_name == "goal_complete":
-            return GOAL_COMPLETE_SIGNAL
-        elif f_name == "open_url":
-            return f"open url {f_args.get('url', '')}"
-        elif f_name == "search_browser":
-            return f"search for {f_args.get('query', '')}"
-        elif f_name in ("open_app", "open_application_gui", "open_application_cmd"):
-            return f"open {f_args.get('app_name', '')}"
-        elif f_name == "type_text":
-            return f"type {f_args.get('text', '')}"
-        elif f_name == "press_key":
-            return f"press {f_args.get('key', '')}"
-        elif f_name == "press_hotkey":
-            return f"press hotkey {f_args.get('hotkey', '')}"
-        elif f_name == "move_mouse":
-            return f"move mouse to {f_args.get('x', 0)}, {f_args.get('y', 0)}"
-        elif f_name == "click":
-            return "click"
-        elif f_name == "double_click":
-            return "double click"
-        elif f_name == "right_click":
-            return "right click"
-        elif f_name == "get_mouse_position":
-            return "get mouse position"
-        elif f_name == "take_screenshot":
-            return "take screenshot"
-        elif f_name == "get_unread_emails":
-            return f"get {f_args.get('max_results', 5)} unread emails"
-        elif f_name == "send_email":
-            return f"send email to {f_args.get('to', '')}"
-        elif f_name == "wait_for_new_email":
-            return "wait for new email"
-        elif f_name == "get_upcoming_events":
-            return f"get {f_args.get('max_results', 10)} upcoming events"
-        elif f_name == "create_event":
-            return f"create event '{f_args.get('summary', '')}'"
-        return GOAL_COMPLETE_SIGNAL
 
     tool_calls = msg.get("tool_calls")
     if tool_calls and len(tool_calls) > 0:

@@ -8,6 +8,7 @@ from .nodes import (
     browser_tool_node,
     application_tool_node,
     interaction_tool_node,
+    file_explorer_tool_node,
     execute_tool_node,
     save_step_node,
     verify_node,
@@ -15,13 +16,14 @@ from .nodes import (
 )
 
 
-# ─── Conditional edge: categorize → browser / application / interaction ───────
+# ─── Conditional edge: categorize → browser / application / interaction / file_explorer ───
 
 def route_to_category(state: AgentState) -> str:
     category = state.get("category", "browser")
-    if category == "browser":      return "browser_node"
-    if category == "application":  return "application_node"
-    if category == "interaction":  return "interaction_node"
+    if category == "browser":        return "browser_node"
+    if category == "application":    return "application_node"
+    if category == "interaction":    return "interaction_node"
+    if category == "file_explorer":  return "file_explorer_node"
     return "browser_node"  # safe default
 
 
@@ -51,7 +53,7 @@ def build_agent_graph() -> StateGraph:
     Flow:
         START → init_run → plan → parse → categorize
                   ↑                           ↓
-                  │          browser / app / interaction node
+                  │        browser / app / interaction / file_explorer node
                   │                           ↓
                   │                      execute_tool
                   │                           ↓
@@ -64,16 +66,17 @@ def build_agent_graph() -> StateGraph:
     workflow = StateGraph(AgentState)
 
     # ── Nodes ──────────────────────────────────────────────────────────────
-    workflow.add_node("init_run",          init_run_node)
-    workflow.add_node("plan",              plan_node)
-    workflow.add_node("parse",             parse_request_node)
-    workflow.add_node("categorize",        categorize_request_node)
-    workflow.add_node("browser_node",      browser_tool_node)
-    workflow.add_node("application_node",  application_tool_node)
-    workflow.add_node("interaction_node",  interaction_tool_node)
-    workflow.add_node("execute_tool",      execute_tool_node)
-    workflow.add_node("save_step",         save_step_node)
-    workflow.add_node("verify",            verify_node)
+    workflow.add_node("init_run",            init_run_node)
+    workflow.add_node("plan",                plan_node)
+    workflow.add_node("parse",               parse_request_node)
+    workflow.add_node("categorize",          categorize_request_node)
+    workflow.add_node("browser_node",        browser_tool_node)
+    workflow.add_node("application_node",    application_tool_node)
+    workflow.add_node("interaction_node",    interaction_tool_node)
+    workflow.add_node("file_explorer_node",  file_explorer_tool_node)
+    workflow.add_node("execute_tool",        execute_tool_node)
+    workflow.add_node("save_step",           save_step_node)
+    workflow.add_node("verify",              verify_node)
 
     # ── Edges ───────────────────────────────────────────────────────────────
     workflow.add_edge(START, "init_run")
@@ -91,16 +94,18 @@ def build_agent_graph() -> StateGraph:
         "categorize",
         route_to_category,
         {
-            "browser_node":      "browser_node",
-            "application_node":  "application_node",
-            "interaction_node":  "interaction_node"
+            "browser_node":        "browser_node",
+            "application_node":    "application_node",
+            "interaction_node":    "interaction_node",
+            "file_explorer_node":  "file_explorer_node"
         }
     )
 
     # All tool families → execute
-    workflow.add_edge("browser_node",     "execute_tool")
-    workflow.add_edge("application_node", "execute_tool")
-    workflow.add_edge("interaction_node", "execute_tool")
+    workflow.add_edge("browser_node",       "execute_tool")
+    workflow.add_edge("application_node",   "execute_tool")
+    workflow.add_edge("interaction_node",   "execute_tool")
+    workflow.add_edge("file_explorer_node", "execute_tool")
 
     def route_after_execute(state: AgentState) -> str:
         if state.get("selected_tool") == "get_unread_emails":
